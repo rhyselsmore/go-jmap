@@ -80,9 +80,17 @@ func main() {
 }
 ```
 
+## Packages
+
+| Package | Description |
+|---|---|
+| `github.com/rhyselsmore/go-jmap` | Core client, session, request/response envelope |
+| [`github.com/rhyselsmore/go-jmap/core`](core/README.md) | JMAP Core capability (RFC 8620) |
+| [`github.com/rhyselsmore/go-jmap/mail`](mail/README.md) | JMAP Mail methods — Mailbox, Email (RFC 8621) |
+
 ## Requirements
 
-- Go 1.25+
+- Go 1.26+
 
 ## License
 

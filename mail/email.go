@@ -7,7 +7,8 @@ import (
 	"github.com/rhyselsmore/go-jmap"
 )
 
-// EmailQuery represents a JMAP "Email/query" call.
+// EmailQuery represents a JMAP "Email/query" call (RFC 8621 §4.4).
+// It returns a list of Email IDs matching the given filter and sort criteria.
 type EmailQuery struct {
 	CallID       string       `json:"-"`         // client call id, not on the wire
 	AccountID    string       `json:"accountId"` // required
@@ -23,13 +24,12 @@ type EmailQuery struct {
 
 func (e *EmailQuery) Name() string { return "Email/query" }
 func (e *EmailQuery) ID() string   { return e.CallID }
-
-// DecodeResponse lets your generic client push the response back in.
 func (e *EmailQuery) DecodeResponse(b json.RawMessage) error {
 	return json.Unmarshal(b, &e.response)
 }
 
-// Response returns the decoded query response.
+// Response returns the decoded Email/query result. It is only populated
+// after the request has been executed via [jmap.Client.Do].
 func (e *EmailQuery) Response() EmailQueryResponse {
 	return e.response
 }
@@ -71,7 +71,9 @@ type EmailQueryResponse struct {
 	Limit               *int     `json:"limit,omitempty"`
 }
 
-// EmailGet represents a JMAP "Email/get" call.
+// EmailGet represents a JMAP "Email/get" call (RFC 8621 §4.5).
+// Use IDRef to pass a result reference from a preceding Email/query call,
+// allowing both to be batched in a single round trip.
 type EmailGet struct {
 	CallID              string                `json:"-"`             // client call id
 	AccountID           string                `json:"accountId"`     // required
@@ -86,11 +88,12 @@ type EmailGet struct {
 
 func (e *EmailGet) Name() string { return "Email/get" }
 func (e *EmailGet) ID() string   { return e.CallID }
-
 func (e *EmailGet) DecodeResponse(b json.RawMessage) error {
 	return json.Unmarshal(b, &e.response)
 }
 
+// Response returns the decoded Email/get result. It is only populated
+// after the request has been executed via [jmap.Client.Do].
 func (e *EmailGet) Response() EmailGetResponse {
 	return e.response
 }
@@ -147,6 +150,8 @@ type EmailAddress struct {
 	Email string `json:"email,omitempty"`
 }
 
+// EmailBodyPart represents a node in the MIME body structure tree of an Email.
+// Leaf nodes have a BlobID; container parts have Children.
 type EmailBodyPart struct {
 	PartID      string          `json:"partId,omitempty"`
 	BlobID      string          `json:"blobId,omitempty"`
@@ -166,6 +171,9 @@ type EmailBodyValue struct {
 	IsTruncated       bool   `json:"isTruncated,omitempty"`
 }
 
+// CollectAttachments recursively walks a body part tree and appends any parts
+// that look like attachments (have a BlobID and a disposition of "attachment"
+// or a non-empty filename) to out.
 func CollectAttachments(p *EmailBodyPart, out *[]EmailBodyPart) {
 	if p == nil {
 		return
@@ -178,7 +186,8 @@ func CollectAttachments(p *EmailBodyPart, out *[]EmailBodyPart) {
 	}
 }
 
-// EmailSet represents a JMAP "Email/set" call.
+// EmailSet represents a JMAP "Email/set" call (RFC 8621 §4.7).
+// It supports creating, updating, and destroying Email objects in a single call.
 type EmailSet struct {
 	CallID    string `json:"-"`         // client call id, not on the wire
 	AccountID string `json:"accountId"` // required
@@ -195,11 +204,12 @@ type EmailSet struct {
 
 func (e *EmailSet) Name() string { return "Email/set" }
 func (e *EmailSet) ID() string   { return e.CallID }
-
 func (e *EmailSet) DecodeResponse(b json.RawMessage) error {
 	return json.Unmarshal(b, &e.response)
 }
 
+// Response returns the decoded Email/set result. It is only populated
+// after the request has been executed via [jmap.Client.Do].
 func (e *EmailSet) Response() EmailSetResponse {
 	return e.response
 }

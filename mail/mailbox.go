@@ -6,6 +6,9 @@ import (
 	"github.com/rhyselsmore/go-jmap"
 )
 
+// Mailbox represents a JMAP Mailbox object as defined in RFC 8621 §2.
+// It holds metadata about a mailbox (folder), including counts, permissions,
+// and server-specific extension fields.
 type Mailbox struct {
 	ID                 string          `json:"id"`
 	Name               string          `json:"name"`
@@ -57,6 +60,9 @@ func (mb *MailboxQuery) Name() string { return "Mailbox/query" }
 func (mb *MailboxQuery) DecodeResponse(b json.RawMessage) error {
 	return json.Unmarshal(b, &mb.response)
 }
+
+// Response returns the decoded Mailbox/query result. It is only populated
+// after the request has been executed via [jmap.Client.Do].
 func (mb *MailboxQuery) Response() *MailboxQueryResponse { return mb.response }
 
 // MailboxFilter represents the "filter" argument to Mailbox/query.
@@ -81,15 +87,16 @@ type SortOption struct {
 	Collation   string `json:"collation,omitempty"`   // e.g. "i;unicode-casemap"
 }
 
-// MailboxGet represents a JMAP "Mailbox/get" call.
+// MailboxGet represents a JMAP "Mailbox/get" call (RFC 8621 §2.5).
+// Use IDRef to pass a result reference from a preceding Mailbox/query call,
+// allowing both to be batched in a single round trip.
 type MailboxGet struct {
-	CallID    string                `json:"-"`             // client call id, not on the wire
-	AccountID string                `json:"accountId"`     // required
-	IDs       []string              `json:"ids,omitempty"` // if empty, server may return all
-	IDRef     *jmap.ResultReference `json:"#ids,omitempty"`
-	// Properties lets you limit the fields returned (recommended)
-	Properties []string            `json:"properties,omitempty"`
-	response   *MailboxGetResponse `json:"-"`
+	CallID     string                `json:"-"`             // client call id, not on the wire
+	AccountID  string                `json:"accountId"`     // required
+	IDs        []string              `json:"ids,omitempty"` // if empty, server may return all
+	IDRef      *jmap.ResultReference `json:"#ids,omitempty"`
+	Properties []string              `json:"properties,omitempty"`
+	response   *MailboxGetResponse   `json:"-"`
 }
 
 func (m *MailboxGet) Name() string { return "Mailbox/get" }
@@ -97,6 +104,9 @@ func (m *MailboxGet) ID() string   { return m.CallID }
 func (mb *MailboxGet) DecodeResponse(b json.RawMessage) error {
 	return json.Unmarshal(b, &mb.response)
 }
+
+// Response returns the decoded Mailbox/get result. It is only populated
+// after the request has been executed via [jmap.Client.Do].
 func (mb *MailboxGet) Response() *MailboxGetResponse { return mb.response }
 
 // MailboxGetResponse is the arguments object returned by "Mailbox/get".

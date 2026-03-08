@@ -7,12 +7,7 @@ A Go client library for the [JMAP](https://jmap.io) protocol ([RFC 8620](https:/
 
 ## Status
 
-This library is in early development. Currently implemented:
-
-- JMAP session discovery and caching
-- Request/response envelope encoding (RFC 8620 §3)
-- Bearer token authentication
-- `Mailbox/query` & `Mailbox/get` method calls
+This library is in early development. 
 
 Much of the JMAP Core and JMAP Mail surface area is not yet covered.
 

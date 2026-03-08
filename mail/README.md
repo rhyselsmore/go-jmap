@@ -82,13 +82,13 @@ req.Add(q2)
 
 ### Update emails with Email/set
 
-`EmailPatch` uses the [`spec/patch`](../spec/patch) package to control
+`EmailPatch` uses the [`protocol/patch`](../protocol/patch) package to control
 serialization per field. By default a map field replaces the whole property on
 the server. Wrap it with `patch.Partial` to expand individual entries into JMAP
 patch paths instead.
 
 ```go
-import "github.com/rhyselsmore/go-jmap/spec/patch"
+import "github.com/rhyselsmore/go-jmap/protocol/patch"
 
 // Mark a single keyword without touching others (partial patch path).
 kw := patch.Partial(patch.Map[bool]{})

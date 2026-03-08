@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/rhyselsmore/go-jmap"
-	"github.com/rhyselsmore/go-jmap/spec/patch"
+	"github.com/rhyselsmore/go-jmap/protocol/patch"
 )
 
 // EmailQuery represents a JMAP "Email/query" call (RFC 8621 §4.4).

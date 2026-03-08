@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/rhyselsmore/go-jmap"
+	"github.com/rhyselsmore/go-jmap/spec/patch"
 )
 
 // EmailQuery represents a JMAP "Email/query" call (RFC 8621 §4.4).
@@ -229,17 +230,23 @@ type EmailCreate struct {
 	TextBody string `json:"textBody,omitempty"` // non-standard shortcut, but handy if you wrap it server-side
 }
 
-// EmailPatch is a typed version of a patch object.
-// Pointer fields let you distinguish "not present" from "present but empty".
+// EmailPatch represents the update object for a single email in an
+// Email/set call, serialized via [patch.Marshal].
+//
+// By default each map field (MailboxIDs, Keywords) replaces the whole
+// server-side property. Wrap a field with [patch.Partial] to switch it to
+// per-entry JMAP patch paths (e.g. "keywords/$seen": true), so only the
+// entries you specify are touched. [patch.Value] fields (Subject) are emitted
+// as direct property replacements when non-absent, and omitted otherwise.
 type EmailPatch struct {
-	// set mailboxIds
-	MailboxIDs map[string]bool `json:"mailboxIds,omitempty"`
+	MailboxIDs patch.Map[bool]     `json:"mailboxIds,omitempty"`
+	Keywords   patch.Map[bool]     `json:"keywords,omitempty"`
+	Subject    patch.Value[string] `json:"subject,omitempty"`
+}
 
-	// replace keywords
-	Keywords map[string]bool `json:"keywords,omitempty"`
-
-	// update subject
-	Subject *string `json:"subject,omitempty"`
+// MarshalJSON serializes the patch using [patch.Marshal].
+func (p *EmailPatch) MarshalJSON() ([]byte, error) {
+	return patch.Marshal(p)
 }
 
 // EmailSetResponse models the "Email/set" response.

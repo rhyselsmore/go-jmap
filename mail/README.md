@@ -80,4 +80,60 @@ q2 := &mail.EmailGet{
 req.Add(q2)
 ```
 
+### Update emails with Email/set
+
+`EmailPatch` uses the [`spec/patch`](../spec/patch) package to control
+serialization per field. By default a map field replaces the whole property on
+the server. Wrap it with `patch.Partial` to expand individual entries into JMAP
+patch paths instead.
+
+```go
+import "github.com/rhyselsmore/go-jmap/spec/patch"
+
+// Mark a single keyword without touching others (partial patch path).
+kw := patch.Partial(patch.Map[bool]{})
+kw.Set("$seen", true)
+
+// Move to a new mailbox by replacing mailboxIds entirely (replace mode).
+mb := patch.Map[bool]{}
+mb.Set(newMailboxID, true)
+
+req := jmap.NewRequest(core.Capability, mail.Capability)
+req.Add(&mail.EmailSet{
+    AccountID: accountID,
+    Update: map[string]*mail.EmailPatch{
+        emailID: {
+            Keywords:   kw,
+            MailboxIDs: mb,
+        },
+    },
+})
+```
+
+To delete an entry from a map (set it to JSON null), use `Null`:
+
+```go
+kw.Null("$seen") // removes $seen without touching other keywords
+```
+
+Scalar fields like `Subject` use `patch.Value[T]`, which is a three-state type:
+absent (omitted), set (a value), or null (explicit server-side deletion). Use
+`patch.Set` to provide a value, or `patch.Null` to clear it:
+
+```go
+subj := "Re: hello"
+
+req.Add(&mail.EmailSet{
+    AccountID: accountID,
+    Update: map[string]*mail.EmailPatch{
+        // Update the subject.
+        emailID: {Subject: patch.Set(subj)},
+        // Clear the subject (set to null on the server).
+        otherID: {Subject: patch.Null[string]()},
+        // Leave subject unchanged (zero Value[T] is absent — field omitted).
+        thirdID: {Keywords: kw},
+    },
+})
+```
+
 See the [top-level README](../README.md) for a full end-to-end example.

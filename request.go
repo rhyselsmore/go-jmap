@@ -116,43 +116,43 @@ func (r *Request) lookup(id string) (Invocation, bool) {
 // response, and correlates each method response back to its originating
 // invocation via [Response.correlate]. Returns an error for non-2xx HTTP
 // status codes, JSON decode failures, or correlation errors.
-func (cl *Client) Do(ctx context.Context, req *Request) (Response, error) {
+func (cl *Client) Do(ctx context.Context, req *Request) (*Response, error) {
 	var resp Response
 
 	sess, err := cl.GetSession(ctx)
 	if err != nil {
-		return resp, err
+		return nil, err
 	}
 
 	body, err := json.Marshal(req)
 	if err != nil {
-		return resp, fmt.Errorf("jmap: marshal request: %w", err)
+		return nil, fmt.Errorf("jmap: marshal request: %w", err)
 	}
 
 	httpReq, err := cl.newRequest(ctx, http.MethodPost, sess.APIURL, bytes.NewReader(body))
 	if err != nil {
-		return resp, err
+		return nil, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json")
 
 	httpResp, err := cl.http.Do(httpReq)
 	if err != nil {
-		return resp, fmt.Errorf("jmap: request error: %w", err)
+		return nil, fmt.Errorf("jmap: request error: %w", err)
 	}
 	defer httpResp.Body.Close()
 
 	if httpResp.StatusCode/100 != 2 {
-		return resp, fmt.Errorf("jmap: request failed: %s", httpResp.Status)
+		return nil, fmt.Errorf("jmap: request failed: %s", httpResp.Status)
 	}
 
 	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
-		return resp, fmt.Errorf("jmap: decode response json: %w", err)
+		return nil, fmt.Errorf("jmap: decode response json: %w", err)
 	}
 
 	if err := resp.correlate(req); err != nil {
-		return resp, err
+		return nil, err
 	}
 
-	return resp, nil
+	return nil, nil
 }

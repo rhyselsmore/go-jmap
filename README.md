@@ -1,5 +1,9 @@
 # go-jmap
 
+[![CI](https://github.com/rhyselsmore/go-jmap/actions/workflows/ci.yml/badge.svg)](https://github.com/rhyselsmore/go-jmap/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/rhyselsmore/go-jmap.svg)](https://pkg.go.dev/github.com/rhyselsmore/go-jmap)
+[![codecov](https://codecov.io/gh/rhyselsmore/go-jmap/branch/main/graph/badge.svg)](https://codecov.io/gh/rhyselsmore/go-jmap)
+
 > **Work in progress — not yet usable.**
 > The API is unstable, incomplete, and will change without notice. Do not use this in production.
 

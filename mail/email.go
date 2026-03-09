@@ -263,21 +263,6 @@ type EmailBodyValue struct {
 	IsTruncated       bool   `json:"isTruncated,omitempty"`
 }
 
-// CollectAttachments recursively walks a body part tree and appends any parts
-// that look like attachments (have a BlobID and a disposition of "attachment"
-// or a non-empty filename) to out.
-func CollectAttachments(p *EmailBodyPart, out *[]EmailBodyPart) {
-	if p == nil {
-		return
-	}
-	if p.BlobID != "" && (p.Disposition == "attachment" || p.Name != "") {
-		*out = append(*out, *p)
-	}
-	for i := range p.Children {
-		CollectAttachments(&p.Children[i], out)
-	}
-}
-
 // EmailSet represents a JMAP "Email/set" call (RFC 8621 §4.7).
 // It supports creating, updating, and destroying Email objects in a single call.
 type EmailSet struct {

@@ -107,6 +107,97 @@ type EmailGetResponse struct {
 	NotFound  []string `json:"notFound,omitempty"`
 }
 
+// EmailChanges represents a JMAP "Email/changes" call (RFC 8621 §4.3,
+// RFC 8620 §5.2). It returns the IDs of emails that have been created,
+// updated, or destroyed since the given state.
+type EmailChanges struct {
+	CallID    string `json:"-"`
+	AccountID string `json:"accountId"`
+
+	// SinceState is the state string from a previous Email/get response.
+	SinceState string `json:"sinceState"`
+
+	// MaxChanges limits the number of IDs returned. If more changes exist,
+	// HasMoreChanges will be true in the response.
+	MaxChanges *int `json:"maxChanges,omitempty"`
+
+	response *EmailChangesResponse `json:"-"`
+}
+
+func (e *EmailChanges) Name() string { return "Email/changes" }
+func (e *EmailChanges) ID() string   { return e.CallID }
+func (e *EmailChanges) DecodeResponse(b json.RawMessage) error {
+	return json.Unmarshal(b, &e.response)
+}
+
+// Response returns the decoded Email/changes result. It is only populated
+// after the request has been executed via [jmap.Client.Do].
+func (e *EmailChanges) Response() *EmailChangesResponse { return e.response }
+
+// EmailChangesResponse is the arguments object returned by "Email/changes".
+type EmailChangesResponse struct {
+	AccountID      string   `json:"accountId"`
+	OldState       string   `json:"oldState"`
+	NewState       string   `json:"newState"`
+	HasMoreChanges bool     `json:"hasMoreChanges"`
+	Created        []string `json:"created"`
+	Updated        []string `json:"updated"`
+	Destroyed      []string `json:"destroyed"`
+}
+
+// EmailQueryChanges represents a JMAP "Email/queryChanges" call
+// (RFC 8621 §4.5, RFC 8620 §5.6). It returns the changes to an Email/query
+// result set since a given query state, expressed as removed IDs and added
+// items (with their new index positions).
+//
+// The Filter and Sort fields must match the original Email/query call whose
+// state you are diffing against.
+type EmailQueryChanges struct {
+	CallID    string       `json:"-"`
+	AccountID string       `json:"accountId"`
+	Filter    *EmailFilter `json:"filter,omitempty"`
+	Sort      []SortOption `json:"sort,omitempty"`
+
+	// SinceQueryState is the queryState string from a previous Email/query
+	// response.
+	SinceQueryState string `json:"sinceQueryState"`
+
+	// MaxChanges limits the total number of removed + added entries returned.
+	// If more changes exist the server returns a tooManyChanges error.
+	MaxChanges *int `json:"maxChanges,omitempty"`
+
+	// UpToID, if set, tells the server to only return changes up to (and
+	// including) this ID in the result set.
+	UpToID string `json:"upToId,omitempty"`
+
+	// CalculateTotal requests that the server include the total count of
+	// results in the response.
+	CalculateTotal bool `json:"calculateTotal,omitempty"`
+
+	response *EmailQueryChangesResponse `json:"-"`
+}
+
+func (e *EmailQueryChanges) Name() string { return "Email/queryChanges" }
+func (e *EmailQueryChanges) ID() string   { return e.CallID }
+func (e *EmailQueryChanges) DecodeResponse(b json.RawMessage) error {
+	return json.Unmarshal(b, &e.response)
+}
+
+// Response returns the decoded Email/queryChanges result. It is only
+// populated after the request has been executed via [jmap.Client.Do].
+func (e *EmailQueryChanges) Response() *EmailQueryChangesResponse { return e.response }
+
+// EmailQueryChangesResponse is the arguments object returned by
+// "Email/queryChanges".
+type EmailQueryChangesResponse struct {
+	AccountID     string      `json:"accountId"`
+	OldQueryState string      `json:"oldQueryState"`
+	NewQueryState string      `json:"newQueryState"`
+	Removed       []string    `json:"removed"`
+	Added         []AddedItem `json:"added"`
+	Total         *int        `json:"total,omitempty"`
+}
+
 // Email represents a JMAP Email object (common fields).
 // You can extend this over time as you need more from your server.
 type Email struct {

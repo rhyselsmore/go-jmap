@@ -12,6 +12,25 @@ defined in [RFC 8621](https://www.rfc-editor.org/rfc/rfc8621).
 | `Email/query` | `EmailQuery` | Query emails with optional filter and sort |
 | `Email/get` | `EmailGet` | Fetch full Email objects by ID or result reference |
 | `Email/set` | `EmailSet` | Create, update, or destroy Email objects |
+| `Mailbox/set` | `MailboxSet` | Create, update, or destroy Mailbox objects |
+| `Mailbox/changes` | `MailboxChanges` | Fetch mailbox IDs changed since a given state |
+| `Mailbox/queryChanges` | `MailboxQueryChanges` | Diff a Mailbox/query result set since a given query state |
+| `Thread/get` | `ThreadGet` | Fetch Thread objects by ID or result reference |
+| `Thread/changes` | `ThreadChanges` | Fetch thread IDs changed since a given state |
+| `VacationResponse/get` | `VacationResponseGet` | Fetch the singleton VacationResponse object |
+| `VacationResponse/set` | `VacationResponseSet` | Update the singleton VacationResponse object |
+| `Email/changes` | `EmailChanges` | Fetch email IDs changed since a given state |
+| `Email/queryChanges` | `EmailQueryChanges` | Diff an Email/query result set since a given query state |
+| `SearchSnippet/get` | `SearchSnippetGet` | Fetch highlighted search snippets for emails |
+
+## Unimplemented methods
+
+The following RFC 8621 methods are not yet implemented:
+
+| Method | RFC 8621 Section |
+|---|---|
+| `Email/copy` | §4.7 |
+| `Email/import` | §4.8 |
 
 ## Usage
 
@@ -132,6 +151,133 @@ req.Add(&mail.EmailSet{
         otherID: {Subject: patch.Null[string]()},
         // Leave subject unchanged (zero Value[T] is absent — field omitted).
         thirdID: {Keywords: kw},
+    },
+})
+```
+
+### Create and update mailboxes with Mailbox/set
+
+```go
+import "github.com/rhyselsmore/go-jmap/protocol/patch"
+
+role := mail.RoleArchive
+req := jmap.NewRequest(core.Capability, mail.Capability)
+req.Add(&mail.MailboxSet{
+    AccountID: accountID,
+    Create: map[string]*mail.MailboxCreate{
+        "new0": {Name: "Archive", Role: &role},
+    },
+    Update: map[string]*mail.MailboxPatch{
+        existingID: {Name: patch.Set("Renamed Folder")},
+    },
+    Destroy: []string{oldMailboxID},
+})
+```
+
+### Sync mailboxes with Mailbox/changes
+
+Use the state string from a previous `Mailbox/get` to fetch only what changed,
+then feed the created and updated IDs into a `Mailbox/get` — all in one request.
+
+```go
+ch := &mail.MailboxChanges{
+    AccountID:  accountID,
+    SinceState: cachedState,
+}
+req.Add(ch)
+
+get := &mail.MailboxGet{
+    AccountID: accountID,
+    IDRef:     jmap.Ref(ch, "/created"),
+}
+req.Add(get)
+```
+
+After execution, remove `ch.Response().Destroyed` IDs from your local cache and
+store `ch.Response().NewState` for next time.
+
+### Sync emails with Email/changes
+
+The same pattern works for emails:
+
+```go
+ch := &mail.EmailChanges{
+    AccountID:  accountID,
+    SinceState: cachedEmailState,
+}
+req.Add(ch)
+
+get := &mail.EmailGet{
+    AccountID: accountID,
+    IDRef:     jmap.Ref(ch, "/created"),
+}
+req.Add(get)
+```
+
+### Fetch threads
+
+Threads group related emails. Use `Thread/get` with IDs from an email's
+`ThreadID` field, or via a result reference:
+
+```go
+threads := &mail.ThreadGet{
+    AccountID: accountID,
+    IDs:       []string{threadID},
+}
+req.Add(threads)
+```
+
+Each `Thread` in the response contains an `EmailIDs` slice sorted by
+`receivedAt` (oldest first).
+
+### Search with highlighted snippets
+
+Pair `Email/query` with `SearchSnippet/get` to get search results with
+highlighted matching terms in a single round trip:
+
+```go
+q := &mail.EmailQuery{
+    AccountID: accountID,
+    Filter:    &mail.EmailFilter{Text: "quarterly report"},
+    Limit:     20,
+}
+req.Add(q)
+
+snippets := &mail.SearchSnippetGet{
+    AccountID:  accountID,
+    Filter:     q.Filter,
+    EmailIDRef: jmap.Ref(q, "/ids/*"),
+}
+req.Add(snippets)
+```
+
+The returned `SearchSnippet` objects contain `Subject` and `Preview` fields
+with matching terms wrapped in HTML `<mark>` tags.
+
+### Manage vacation auto-replies
+
+`VacationResponse` is a singleton — there is exactly one per account, always
+with the ID `"singleton"`. It requires the `VacationResponseCapability` in the
+`using` array.
+
+```go
+req := jmap.NewRequest(core.Capability, mail.Capability, mail.VacationResponseCapability)
+
+// Fetch current settings.
+get := &mail.VacationResponseGet{AccountID: accountID}
+req.Add(get)
+
+// Enable auto-replies.
+subject := "Out of office"
+body := "I'm away until Monday."
+req.Add(&mail.VacationResponseSet{
+    AccountID: accountID,
+    Update: map[string]*mail.VacationResponsePatch{
+        "singleton": {
+            IsEnabled: ptrBool(true),
+            Subject:   &subject,
+            TextBody:  &body,
+        },
     },
 })
 ```

@@ -13,8 +13,6 @@ A Go client library for the [JMAP](https://jmap.io) protocol ([RFC 8620](https:/
 
 This library is in early development. 
 
-Much of the JMAP Core and JMAP Mail surface area is not yet covered.
-
 ## Example
 
 ```go
@@ -84,6 +82,7 @@ func main() {
 | Package | Description |
 |---|---|
 | `github.com/rhyselsmore/go-jmap` | Core client, session, request/response envelope |
+| [`github.com/rhyselsmore/go-jmap/contacts`](mail/README.md) | JMAP Contact capability (RFC 9610) |
 | [`github.com/rhyselsmore/go-jmap/core`](core/README.md) | JMAP Core capability (RFC 8620) |
 | [`github.com/rhyselsmore/go-jmap/mail`](mail/README.md) | JMAP Mail methods — Mailbox, Email (RFC 8621) |
 
